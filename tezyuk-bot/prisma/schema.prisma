@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  telegramId BigInt   @unique @map("telegram_id")
+  phone      String
+  fullName   String   @map("full_name")
+  language   Language @default(uz)
+  isBlocked  Boolean  @default(false) @map("is_blocked")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  orders     Order[]
+
+  @@map("users")
+}
+
+model Order {
+  id                String      @id @default(uuid())
+  userId            String      @map("user_id")
+  fromRegion        String      @map("from_region")
+  toRegion          String      @map("to_region")
+  cargoName         String      @map("cargo_name")
+  weight            String
+  truckType         String      @map("truck_type")
+  price             String      @default("")
+  status            OrderStatus @default(active)
+  telegramMessageId Int?        @map("telegram_message_id")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  user              User        @relation(fields: [userId], references: [id])
+
+  @@map("orders")
+}
+
+model Region {
+  id       Int     @id @default(autoincrement())
+  key      String  @unique
+  nameUz   String  @map("name_uz")
+  topicId  Int     @map("topic_id")
+  isActive Boolean @default(true) @map("is_active")
+
+  @@map("regions")
+}
+
+model Admin {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  passwordHash String    @map("password_hash")
+  role         AdminRole @default(moderator)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("admins")
+}
+
+enum Language {
+  uz
+  ru
+}
+
+enum OrderStatus {
+  pending
+  active
+  cancelled
+}
+
+enum AdminRole {
+  superadmin
+  moderator
+}

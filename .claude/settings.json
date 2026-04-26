@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PGPASSWORD=postgres psql -h localhost -p 5435 -U postgres -d yukmarkaz -c \"SELECT key, \\\\\"nameUz\\\\\", \\\\\"topicId\\\\\", \\\\\"isActive\\\\\" FROM \\\\\"Region\\\\\" ORDER BY \\\\\"topicId\\\\\";\")",
+      "Bash(psql -h localhost -p 5435 -U postgres -d yukmarkaz -c 'SELECT id, status, \"fromRegion\", \"toRegion\", \"telegramMessageId\", \"createdAt\" FROM \"Order\" ORDER BY \"createdAt\" DESC LIMIT 5;')",
+      "Bash(PGPASSWORD=postgres psql -h localhost -p 5435 -U postgres yukmarkaz -c \"SELECT id, status, \\\\\"fromRegion\\\\\", \\\\\"toRegion\\\\\", \\\\\"telegramMessageId\\\\\" FROM \\\\\"Order\\\\\" ORDER BY \\\\\"createdAt\\\\\" DESC LIMIT 5;\")",
+      "Bash(PGPASSWORD=postgres psql -h localhost -p 5435 -U postgres yukmarkaz -c \"\\\\dt\")",
+      "Bash(psql -h localhost -p 5435 -U postgres yukmarkaz -c 'SELECT id, status, \"fromRegion\", \"toRegion\", \"telegramMessageId\" FROM orders ORDER BY \"createdAt\" DESC LIMIT 5;')",
+      "Bash(psql -h localhost -p 5435 -U postgres yukmarkaz -c 'SELECT id, status, from_region, to_region, telegram_message_id FROM orders ORDER BY created_at DESC LIMIT 5;')",
+      "Bash(redis-cli lrange *)",
+      "Bash(redis-cli hgetall *)",
+      "Bash(redis-cli hget *)",
+      "Bash(psql -h localhost -p 5435 -U postgres yukmarkaz -c 'SELECT key, name_uz, topic_id, is_active FROM regions ORDER BY topic_id;')",
+      "Bash(redis-cli del *)",
+      "Bash(psql -h localhost -p 5435 -U postgres yukmarkaz -c 'UPDATE orders SET status='\\\\''pending'\\\\'' WHERE status='\\\\''pending'\\\\'' AND telegram_message_id IS NULL;')",
+      "Bash(pkill -9 -f \"node.*dist/main\\\\|nest start\")",
+      "Bash(kill -9 264705)",
+      "Bash(psql -h localhost -p 5435 -U postgres yukmarkaz -c 'SELECT id FROM orders WHERE status='\\\\''pending'\\\\'' AND telegram_message_id IS NULL;')",
+      "Bash(redis-cli eval ' *)"
+    ]
+  }
+}
