@@ -10,12 +10,18 @@ const truckTypes = [
 ];
 
 export const truckKeyboard = () =>
-  Markup.inlineKeyboard(
-    truckTypes.map((item) =>
-      Markup.button.callback(
-        `${item.emoji} ${item.label}`,
-        `truck:${item.label}`,
+  Markup.inlineKeyboard([
+    ...chunk(
+      truckTypes.map((item) =>
+        Markup.button.callback(`${item.emoji} ${item.label}`, `truck:${item.label}`),
       ),
+      2,
     ),
-    { columns: 2 },
-  );
+    [Markup.button.callback('❌ Bekor qilish', 'cancel:scene')],
+  ]);
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));
+  return result;
+}

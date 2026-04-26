@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
+import { InjectBot } from 'nestjs-telegraf';
+import { Telegraf } from 'telegraf';
 import { OrdersService } from 'src/orders/orders.service';
 import { RegionsService } from 'src/regions/regions.service';
 import { UsersService } from 'src/users/users.service';
@@ -10,6 +12,7 @@ import { UpdateRegionDto } from './dto/update-region.dto';
 @Injectable()
 export class AdminService {
   constructor(
+    @InjectBot() private readonly bot: Telegraf,
     private readonly ordersService: OrdersService,
     private readonly usersService: UsersService,
     private readonly regionsService: RegionsService,
@@ -32,8 +35,20 @@ export class AdminService {
     return this.ordersService.updateOrder(id, dto);
   }
 
-  deleteOrder(id: string) {
-    return this.ordersService.cancelOrder(id);
+  async deleteOrder(id: string) {
+    const order = await this.ordersService.cancelOrder(id);
+
+    // Notify the user about cancellation
+    try {
+      const user = await this.usersService.ensureExists(order.userId);
+      await this.bot.telegram.sendMessage(
+        Number(user.telegramId),
+        `❌ Sizning e'loningiz admin tomonidan bekor qilindi.\n\n` +
+        `📦 ${order.cargoName} | ${order.fromRegion} → ${order.toRegion}`,
+      );
+    } catch {}
+
+    return order;
   }
 
   getUsers(page: number, limit: number) {

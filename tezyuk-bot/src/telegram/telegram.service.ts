@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, UseGuards } from '@nestjs/common';
 import { Language } from '@prisma/client';
 import {
+  Action,
   Command,
   Ctx,
   Hears,
@@ -8,7 +9,7 @@ import {
   Start,
   Update,
 } from 'nestjs-telegraf';
-import { Scenes } from 'telegraf';
+import { Markup, Scenes } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { OrdersService } from 'src/orders/orders.service';
@@ -47,6 +48,7 @@ export class TelegramService implements OnModuleInit {
   @Start()
   async start(@Ctx() ctx: BotContext) {
     if (!ctx.from) return;
+    if (ctx.chat?.type !== 'private') return;
 
     const user = await this.usersService.findByTelegramId(BigInt(ctx.from.id));
     if (!user) {
@@ -94,8 +96,9 @@ export class TelegramService implements OnModuleInit {
       cancelled: '🔴',
     };
 
-    const text = orders
-      .slice(0, 10)
+    const recent = orders.slice(0, 10);
+
+    const text = recent
       .map(
         (order, i) =>
           `${i + 1}. ${statusIcon[order.status] ?? '⚪'} ${order.fromRegion} → ${order.toRegion}\n` +
@@ -104,10 +107,35 @@ export class TelegramService implements OnModuleInit {
       )
       .join('\n\n');
 
-    await ctx.reply(`📋 *Mening e'lonlarim:*\n\n${text}`, {
-      parse_mode: 'Markdown',
-      ...mainKeyboard(),
-    });
+    const cancelButtons = recent
+      .map((order, i) =>
+        order.status === 'active'
+          ? [Markup.button.callback(`❌ ${i + 1}-e'lonni bekor qilish`, `cancelorder:${order.id}`)]
+          : null,
+      )
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+
+    const replyOptions = cancelButtons.length
+      ? { parse_mode: 'Markdown' as const, ...Markup.inlineKeyboard(cancelButtons) }
+      : { parse_mode: 'Markdown' as const, ...mainKeyboard() };
+
+    await ctx.reply(`📋 *Mening e'lonlarim:*\n\n${text}`, replyOptions);
+  }
+
+  @Action(/^cancelorder:/)
+  async cancelMyOrder(@Ctx() ctx: BotContext) {
+    await ctx.answerCbQuery();
+    const data = ctx.callbackQuery && 'data' in ctx.callbackQuery
+      ? ctx.callbackQuery.data
+      : '';
+    const orderId = data.replace('cancelorder:', '');
+
+    try {
+      await this.ordersService.cancelOrder(orderId);
+      await ctx.editMessageText("✅ E'lon bekor qilindi", Markup.inlineKeyboard([]));
+    } catch {
+      await ctx.reply("Xatolik yuz berdi. Qayta urinib ko'ring.");
+    }
   }
 
   @Command('help')

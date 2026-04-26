@@ -21,12 +21,15 @@ interface OrderState {
   price?: string;
 }
 
+const cancelKeyboard = () =>
+  Markup.keyboard([['❌ Bekor qilish']]).resize();
+
 export const createOrderScene = (
   ordersService: OrdersService,
   usersService: UsersService,
   regionsService: RegionsService,
-) =>
-  new Scenes.WizardScene<Scenes.WizardContext>(
+) => {
+  const scene = new Scenes.WizardScene<Scenes.WizardContext>(
     'order',
     async (ctx) => {
       const regions = await regionsService.getActiveRegions();
@@ -75,7 +78,7 @@ export const createOrderScene = (
       const toRegion = await regionsService.findByKey(toKey);
       state.toRegion = toKey;
       state.toRegionName = toRegion?.nameUz ?? toKey;
-      await ctx.reply('Yuk nomi va tavsifi?');
+      await ctx.reply('Yuk nomi va tavsifi?', cancelKeyboard());
       return ctx.wizard.next();
     },
     async (ctx) => {
@@ -89,7 +92,7 @@ export const createOrderScene = (
       }
 
       state.cargoName = cargoName;
-      await ctx.reply("Og'irligi?");
+      await ctx.reply("Og'irligi? (masalan: 5 tonna)", cancelKeyboard());
       return ctx.wizard.next();
     },
     async (ctx) => {
@@ -103,7 +106,7 @@ export const createOrderScene = (
       }
 
       state.weight = weight;
-      await ctx.reply("Narx? (masalan: 500 000 so'm yoki \"Kelishamiz\")");
+      await ctx.reply("Narx? (masalan: 500 000 so'm yoki \"Kelishamiz\")", cancelKeyboard());
       return ctx.wizard.next();
     },
     async (ctx) => {
@@ -206,3 +209,19 @@ export const createOrderScene = (
       await ctx.scene.leave();
     },
   );
+
+  // Cancel from reply keyboard (text steps)
+  scene.hears('❌ Bekor qilish', async (ctx) => {
+    await ctx.reply("❌ E'lon berish bekor qilindi", mainKeyboard());
+    await ctx.scene.leave();
+  });
+
+  // Cancel from inline keyboard (region/truck steps)
+  scene.action('cancel:scene', async (ctx) => {
+    await ctx.answerCbQuery();
+    await ctx.reply("❌ E'lon berish bekor qilindi", mainKeyboard());
+    await ctx.scene.leave();
+  });
+
+  return scene;
+};
