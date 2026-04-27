@@ -9,13 +9,19 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'Kutilmoqda',
   active: 'Faol',
   cancelled: 'Bekor',
+  completed: 'Topildi',
+  expired: 'Muddati tugadi',
 };
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
   active: 'bg-green-100 text-green-700',
   cancelled: 'bg-red-100 text-red-600',
+  completed: 'bg-blue-100 text-blue-700',
+  expired: 'bg-gray-100 text-gray-500',
 };
+
+const CLOSED_STATUSES: OrderStatus[] = ['cancelled', 'completed', 'expired'];
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -86,6 +92,8 @@ export default function OrderDetailPage() {
     );
   }
 
+  const isClosed = CLOSED_STATUSES.includes(order.status);
+
   return (
     <div className="space-y-5 max-w-3xl">
       <div className="flex items-center gap-3">
@@ -116,8 +124,14 @@ export default function OrderDetailPage() {
               </span>
             }
           />
-          <DetailRow label="Yuklash hududi" value={order.fromRegion} />
-          <DetailRow label="Tushirish hududi" value={order.toRegion} />
+          <DetailRow
+            label="Yuklash hududi"
+            value={order.fromDistrict ? `${order.fromRegion}, ${order.fromDistrict}` : order.fromRegion}
+          />
+          <DetailRow
+            label="Tushirish hududi"
+            value={order.toDistrict ? `${order.toRegion}, ${order.toDistrict}` : order.toRegion}
+          />
           <DetailRow label="Yuk nomi" value={order.cargoName} />
           <DetailRow label="Og'irlik" value={order.weight} />
           <DetailRow label="Mashina turi" value={order.truckType} />
@@ -153,7 +167,7 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {order.status !== 'cancelled' && (
+      {!isClosed && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
             Amallar
