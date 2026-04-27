@@ -287,6 +287,11 @@ export const createOrderScene = (
     await ctx.scene.leave();
   });
 
+  scene.command('cancel', async (ctx) => {
+    await ctx.reply("❌ E'lon berish bekor qilindi", mainKeyboard());
+    await ctx.scene.leave();
+  });
+
   scene.action('cancel:scene', async (ctx) => {
     await ctx.answerCbQuery();
     await ctx.reply("❌ E'lon berish bekor qilindi", mainKeyboard());

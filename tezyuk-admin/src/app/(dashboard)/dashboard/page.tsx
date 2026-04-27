@@ -69,9 +69,9 @@ export default function DashboardPage() {
         <p className="text-gray-500 text-sm mt-1">Umumiy statistika</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-7 gap-4">
         <StatCard
-          title="Jami buyurtmalar"
+          title="Jami"
           value={stats.totalOrders}
           color="bg-blue-100"
           icon={
@@ -81,7 +81,27 @@ export default function DashboardPage() {
           }
         />
         <StatCard
-          title="Kutilmoqda"
+          title="Faol"
+          value={stats.activeOrders}
+          color="bg-green-100"
+          icon={
+            <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+        <StatCard
+          title="Topildi"
+          value={stats.completedOrders}
+          color="bg-teal-100"
+          icon={
+            <svg className="w-6 h-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          }
+        />
+        <StatCard
+          title="Bekor"
           value={stats.pendingOrders}
           color="bg-yellow-100"
           icon={
@@ -91,12 +111,12 @@ export default function DashboardPage() {
           }
         />
         <StatCard
-          title="Faol buyurtmalar"
-          value={stats.activeOrders}
-          color="bg-green-100"
+          title="Tugadi"
+          value={stats.expiredOrders}
+          color="bg-gray-100"
           icon={
-            <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           }
         />

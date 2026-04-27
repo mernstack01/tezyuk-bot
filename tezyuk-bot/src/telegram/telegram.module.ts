@@ -43,9 +43,23 @@ function createRedisSessionStore(redis: Redis) {
         sessionRedis = new Redis(
           configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
         );
+
+        const isProduction = configService.get<string>('NODE_ENV') === 'production';
+        const webhookDomain = configService.get<string>('WEBHOOK_DOMAIN', '');
+
         return {
           token: configService.get<string>('BOT_TOKEN', ''),
           middlewares: [session({ store: createRedisSessionStore(sessionRedis) })],
+          ...(isProduction && webhookDomain
+            ? {
+                launchOptions: {
+                  webhook: {
+                    domain: webhookDomain,
+                    port: Number(configService.get<string>('PORT', '9001')),
+                  },
+                },
+              }
+            : {}),
         };
       },
     }),

@@ -45,8 +45,18 @@ export class TelegramService implements OnModuleInit {
       { command: 'start', description: '🏠 Bosh sahifa' },
       { command: 'order', description: "📦 Yangi yuk e'loni berish" },
       { command: 'myorders', description: "📋 Mening e'lonlarim" },
+      { command: 'cancel', description: "❌ Joriy amalni bekor qilish" },
       { command: 'help', description: '❓ Yordam' },
     ]);
+  }
+
+  @Command('cancel')
+  async cancelScene(@Ctx() ctx: BotContext) {
+    const inScene = !!(ctx.scene as { current?: string } | undefined)?.current;
+    if (inScene) {
+      await ctx.scene.leave();
+    }
+    await ctx.reply("❌ Amal bekor qilindi.", mainKeyboard());
   }
 
   @Start()

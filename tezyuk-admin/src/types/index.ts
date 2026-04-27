@@ -1,4 +1,4 @@
-export type OrderStatus = 'pending' | 'active' | 'cancelled';
+export type OrderStatus = 'pending' | 'active' | 'cancelled' | 'completed' | 'expired';
 export type AdminRole = 'superadmin' | 'moderator';
 export type Language = 'uz' | 'ru';
 
@@ -17,7 +17,9 @@ export interface Order {
   id: string;
   userId: string;
   fromRegion: string;
+  fromDistrict: string;
   toRegion: string;
+  toDistrict: string;
   cargoName: string;
   weight: string;
   truckType: string;
@@ -41,6 +43,8 @@ export interface Stats {
   totalOrders: number;
   pendingOrders: number;
   activeOrders: number;
+  completedOrders: number;
+  expiredOrders: number;
   totalUsers: number;
   ordersToday: number;
   ordersByRegion: { region: string; count: number }[];

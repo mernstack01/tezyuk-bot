@@ -60,8 +60,9 @@ export class OrdersService {
       },
     });
 
+    const expiryHours = Number(process.env.ORDER_EXPIRY_HOURS ?? 24);
     await this.notificationProducer.addNotificationJob(order.id);
-    await this.notificationProducer.addExpiryJob(order.id, 24 * 60 * 60 * 1000);
+    await this.notificationProducer.addExpiryJob(order.id, expiryHours * 60 * 60 * 1000);
     return order;
   }
 
@@ -151,6 +152,8 @@ export class OrdersService {
       totalOrders,
       pendingOrders,
       activeOrders,
+      completedOrders,
+      expiredOrders,
       totalUsers,
       ordersToday,
       grouped,
@@ -158,6 +161,8 @@ export class OrdersService {
       this.prisma.order.count(),
       this.prisma.order.count({ where: { status: OrderStatus.pending } }),
       this.prisma.order.count({ where: { status: OrderStatus.active } }),
+      this.prisma.order.count({ where: { status: OrderStatus.completed } }),
+      this.prisma.order.count({ where: { status: OrderStatus.expired } }),
       this.prisma.user.count(),
       this.prisma.order.count({ where: { createdAt: { gte: today } } }),
       this.prisma.order.groupBy({
@@ -170,6 +175,8 @@ export class OrdersService {
       totalOrders,
       pendingOrders,
       activeOrders,
+      completedOrders,
+      expiredOrders,
       totalUsers,
       ordersToday,
       ordersByRegion: grouped.map((item) => ({

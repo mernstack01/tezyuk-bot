@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { WinstonModule } from 'nest-winston';
 import { URL } from 'url';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
+import { HealthModule } from './health/health.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { createWinstonLogger } from './common/logger/winston.logger';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -18,6 +20,7 @@ import { UsersModule } from './users/users.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 10 }]),
     WinstonModule.forRoot(createWinstonLogger()),
     BullModule.forRootAsync({
       inject: [ConfigService],
@@ -38,6 +41,7 @@ import { UsersModule } from './users/users.module';
       },
     }),
     PrismaModule,
+    HealthModule,
     UsersModule,
     OrdersModule,
     RegionsModule,
@@ -50,6 +54,10 @@ import { UsersModule } from './users/users.module';
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

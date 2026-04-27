@@ -8,8 +8,8 @@ interface RegisterState {
   fullName?: string;
 }
 
-export const createRegisterScene = (usersService: UsersService) =>
-  new Scenes.WizardScene<Scenes.WizardContext>(
+export const createRegisterScene = (usersService: UsersService) => {
+  const scene = new Scenes.WizardScene<Scenes.WizardContext>(
     'register',
     async (ctx) => {
       await ctx.reply("👤 Ismingizni kiriting (ism va familiya):");
@@ -58,3 +58,11 @@ export const createRegisterScene = (usersService: UsersService) =>
       await ctx.scene.leave();
     },
   );
+
+  scene.command('cancel', async (ctx) => {
+    await ctx.reply("❌ Ro'yxatdan o'tish bekor qilindi.", mainKeyboard());
+    await ctx.scene.leave();
+  });
+
+  return scene;
+};

@@ -8,12 +8,16 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'Kutilmoqda',
   active: 'Faol',
   cancelled: 'Bekor',
+  completed: 'Topildi',
+  expired: 'Muddati tugadi',
 };
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
   active: 'bg-green-100 text-green-700',
   cancelled: 'bg-red-100 text-red-600',
+  completed: 'bg-blue-100 text-blue-700',
+  expired: 'bg-gray-100 text-gray-500',
 };
 
 const PAGE_SIZE = 20;
@@ -83,6 +87,8 @@ export default function OrdersPage() {
           <option value="pending">Kutilmoqda</option>
           <option value="active">Faol</option>
           <option value="cancelled">Bekor</option>
+          <option value="completed">Topildi</option>
+          <option value="expired">Muddati tugadi</option>
         </select>
 
         <select
@@ -144,7 +150,13 @@ export default function OrdersPage() {
                       <div className="text-gray-500 text-xs">{order.user?.phone}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-700">
-                      {order.fromRegion} → {order.toRegion}
+                      <div>
+                        {order.fromRegion}{order.fromDistrict ? `, ${order.fromDistrict}` : ''}
+                      </div>
+                      <div className="text-gray-400">↓</div>
+                      <div>
+                        {order.toRegion}{order.toDistrict ? `, ${order.toDistrict}` : ''}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       <div>{order.cargoName}</div>
