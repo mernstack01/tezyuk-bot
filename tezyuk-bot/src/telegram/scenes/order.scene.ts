@@ -13,8 +13,10 @@ import { truckKeyboard } from '../keyboards/truck.keyboard';
 interface OrderState {
   fromRegion?: string;
   fromRegionName?: string;
+  fromDistrict?: string;
   toRegion?: string;
   toRegionName?: string;
+  toDistrict?: string;
   cargoName?: string;
   weight?: string;
   truckType?: string;
@@ -31,11 +33,15 @@ export const createOrderScene = (
 ) => {
   const scene = new Scenes.WizardScene<Scenes.WizardContext>(
     'order',
+
+    // Step 0: from viloyat tanlash
     async (ctx) => {
       const regions = await regionsService.getActiveRegions();
-      await ctx.reply('Yuk qayerdan ketadi?', regionKeyboard(regions, 'from'));
+      await ctx.reply('Yuk qayerdan ketadi? (viloyatni tanlang)', regionKeyboard(regions, 'from'));
       return ctx.wizard.next();
     },
+
+    // Step 1: from viloyat qabul qilish → from tuman so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
       const callbackQuery = ctx.callbackQuery;
@@ -53,9 +59,33 @@ export const createOrderScene = (
       const fromRegion = regions.find((r) => r.key === fromKey);
       state.fromRegion = fromKey;
       state.fromRegionName = fromRegion?.nameUz ?? fromKey;
-      await ctx.reply('Qayerga ketadi?', regionKeyboard(regions, 'to'));
+
+      await ctx.reply(
+        `📍 Qaysi tumanidan? (masalan: Yunusobod, Olmazor)\n\nYoki "—" yozing`,
+        cancelKeyboard(),
+      );
       return ctx.wizard.next();
     },
+
+    // Step 2: from tuman qabul qilish → to viloyat tanlash
+    async (ctx) => {
+      const state = ctx.wizard.state as OrderState;
+      const message = ctx.message;
+      const text = message && 'text' in message ? normalizeText(message.text) : '';
+
+      if (text.length < 1) {
+        await ctx.reply('Tuman nomini kiriting yoki "—" yozing');
+        return;
+      }
+
+      state.fromDistrict = text === '—' ? '' : text;
+
+      const regions = await regionsService.getActiveRegions();
+      await ctx.reply('Yuk qayerga ketadi? (viloyatni tanlang)', regionKeyboard(regions, 'to'));
+      return ctx.wizard.next();
+    },
+
+    // Step 3: to viloyat qabul qilish → to tuman so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
       const callbackQuery = ctx.callbackQuery;
@@ -70,7 +100,7 @@ export const createOrderScene = (
       const toKey = data.split(':')[1];
       if (toKey === state.fromRegion) {
         await ctx.answerCbQuery();
-        await ctx.reply("Jo'nash va borish hududi bir xil bo'lmasin");
+        await ctx.reply("Jo'nash va borish viloyati bir xil bo'lmasin");
         return;
       }
 
@@ -78,9 +108,32 @@ export const createOrderScene = (
       const toRegion = await regionsService.findByKey(toKey);
       state.toRegion = toKey;
       state.toRegionName = toRegion?.nameUz ?? toKey;
+
+      await ctx.reply(
+        `📍 Qaysi tumaniga? (masalan: Mirzo Ulug'bek)\n\nYoki "—" yozing`,
+        cancelKeyboard(),
+      );
+      return ctx.wizard.next();
+    },
+
+    // Step 4: to tuman qabul qilish → yuk nomi so'rash
+    async (ctx) => {
+      const state = ctx.wizard.state as OrderState;
+      const message = ctx.message;
+      const text = message && 'text' in message ? normalizeText(message.text) : '';
+
+      if (text.length < 1) {
+        await ctx.reply('Tuman nomini kiriting yoki "—" yozing');
+        return;
+      }
+
+      state.toDistrict = text === '—' ? '' : text;
+
       await ctx.reply('Yuk nomi va tavsifi?', cancelKeyboard());
       return ctx.wizard.next();
     },
+
+    // Step 5: yuk nomi qabul qilish → og'irlik so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
       const message = ctx.message;
@@ -95,6 +148,8 @@ export const createOrderScene = (
       await ctx.reply("Og'irligi? (masalan: 5 tonna)", cancelKeyboard());
       return ctx.wizard.next();
     },
+
+    // Step 6: og'irlik qabul qilish → narx so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
       const message = ctx.message;
@@ -109,6 +164,8 @@ export const createOrderScene = (
       await ctx.reply("Narx? (masalan: 500 000 so'm yoki \"Kelishamiz\")", cancelKeyboard());
       return ctx.wizard.next();
     },
+
+    // Step 7: narx qabul qilish → mashina turi so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
       const message = ctx.message;
@@ -123,6 +180,8 @@ export const createOrderScene = (
       await ctx.reply('Mashina turi?', truckKeyboard());
       return ctx.wizard.next();
     },
+
+    // Step 8: mashina turi qabul qilish → preview ko'rsatish
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
       const callbackQuery = ctx.callbackQuery;
@@ -136,12 +195,21 @@ export const createOrderScene = (
 
       await ctx.answerCbQuery();
       state.truckType = data.split(':')[1];
+
+      const fromLocation = state.fromDistrict
+        ? `${state.fromRegionName ?? ''}, ${state.fromDistrict}`
+        : (state.fromRegionName ?? '');
+      const toLocation = state.toDistrict
+        ? `${state.toRegionName ?? ''}, ${state.toDistrict}`
+        : (state.toRegionName ?? '');
+
       await ctx.reply(
         [
-          "Buyurtma ma'lumotlari:",
+          "📋 Buyurtma ma'lumotlari:",
+          '',
           `📦 Yuk: ${state.cargoName ?? ''}`,
-          `📍 Qayerdan: ${state.fromRegionName ?? ''}`,
-          `📍 Qayerga: ${state.toRegionName ?? ''}`,
+          `📍 Qayerdan: ${fromLocation}`,
+          `📍 Qayerga: ${toLocation}`,
           `⚖️ Og'irlik: ${state.weight ?? ''}`,
           `🚚 Mashina: ${state.truckType ?? ''}`,
           `💰 Narx: ${state.price ?? ''}`,
@@ -155,6 +223,8 @@ export const createOrderScene = (
       );
       return ctx.wizard.next();
     },
+
+    // Step 9: tasdiqlash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
       const callbackQuery = ctx.callbackQuery;
@@ -191,7 +261,9 @@ export const createOrderScene = (
         await ordersService.createOrder({
           userId: user.id,
           fromRegion: state.fromRegion ?? '',
+          fromDistrict: state.fromDistrict ?? '',
           toRegion: state.toRegion ?? '',
+          toDistrict: state.toDistrict ?? '',
           cargoName: state.cargoName ?? '',
           weight: state.weight ?? '',
           truckType: state.truckType ?? '',
@@ -210,13 +282,11 @@ export const createOrderScene = (
     },
   );
 
-  // Cancel from reply keyboard (text steps)
   scene.hears('❌ Bekor qilish', async (ctx) => {
     await ctx.reply("❌ E'lon berish bekor qilindi", mainKeyboard());
     await ctx.scene.leave();
   });
 
-  // Cancel from inline keyboard (region/truck steps)
   scene.action('cancel:scene', async (ctx) => {
     await ctx.answerCbQuery();
     await ctx.reply("❌ E'lon berish bekor qilindi", mainKeyboard());

@@ -1,5 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, LoggerService } from '@nestjs/common';
+import { OrderStatus } from '@prisma/client';
 import { Job } from 'bullmq';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { InjectBot } from 'nestjs-telegraf';
@@ -22,13 +23,20 @@ export class NotificationProcessor extends WorkerHost {
   }
 
   async process(job: Job<{ orderId: string }>): Promise<void> {
+    if (job.name === 'expire-order') {
+      return this.handleExpiry(job.data.orderId);
+    }
+    return this.handleNotification(job.data.orderId);
+  }
+
+  private async handleNotification(orderId: string): Promise<void> {
     const order = await this.prisma.order.findUnique({
-      where: { id: job.data.orderId },
+      where: { id: orderId },
       include: { user: true },
     });
 
     if (!order) {
-      this.logger.warn(`Buyurtma topilmadi: ${job.data.orderId}`);
+      this.logger.warn(`Buyurtma topilmadi: ${orderId}`);
       return;
     }
 
@@ -52,16 +60,11 @@ export class NotificationProcessor extends WorkerHost {
 
     let sentMessageId: number | undefined;
 
-    // 1. Elonlar (umumiy) topiciga yuborish
     try {
-      const announcementMsg = await this.bot.telegram.sendMessage(
-        groupId,
-        text,
-        {
-          parse_mode: parseMode,
-          message_thread_id: announcementTopicId,
-        },
-      );
+      const announcementMsg = await this.bot.telegram.sendMessage(groupId, text, {
+        parse_mode: parseMode,
+        message_thread_id: announcementTopicId,
+      });
       sentMessageId = announcementMsg.message_id;
     } catch (err) {
       this.logger.warn(
@@ -69,7 +72,6 @@ export class NotificationProcessor extends WorkerHost {
       );
     }
 
-    // 2. Viloyat topiciga yuborish (agar Elonlar topicidan farqli bo'lsa)
     if (fromRegion.topicId > 0 && fromRegion.topicId !== announcementTopicId) {
       try {
         const regionMsg = await this.bot.telegram.sendMessage(groupId, text, {
@@ -85,10 +87,55 @@ export class NotificationProcessor extends WorkerHost {
     }
 
     await this.prisma.order.update({
-      where: { id: order.id },
+      where: { id: orderId },
       data: { telegramMessageId: sentMessageId },
     });
 
-    this.logger.log(`Telegram e'loni yuborildi: ${order.id}`);
+    this.logger.log(`Telegram e'loni yuborildi: ${orderId}`);
+  }
+
+  private async handleExpiry(orderId: string): Promise<void> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { user: true },
+    });
+
+    if (!order || order.status !== OrderStatus.active) {
+      return;
+    }
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: OrderStatus.expired },
+    });
+
+    const groupId = this.configService.get<string>('GROUP_ID', '');
+    if (order.telegramMessageId && groupId) {
+      try {
+        await this.bot.telegram.deleteMessage(groupId, order.telegramMessageId);
+      } catch (err) {
+        this.logger.warn(
+          `Muddati tugagan e'lon xabarini o'chirib bo'lmadi: ${err instanceof Error ? err.message : err}`,
+        );
+      }
+    }
+
+    try {
+      const fromDistrict = order.fromDistrict ? `, ${order.fromDistrict}` : '';
+      const toDistrict = order.toDistrict ? `, ${order.toDistrict}` : '';
+      await this.bot.telegram.sendMessage(
+        Number(order.user.telegramId),
+        `⏰ E'loningiz muddati tugadi va avtomatik yopildi (24 soat).\n\n` +
+          `📦 ${order.cargoName}\n` +
+          `📍 ${order.fromRegion}${fromDistrict} → ${order.toRegion}${toDistrict}\n\n` +
+          `Yangi e'lon berish uchun "📦 E'lon berish" tugmasini bosing.`,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Muddati tugagani haqida xabar yuborib bo'lmadi: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+
+    this.logger.log(`E'lon muddati tugadi: ${orderId}`);
   }
 }

@@ -24,16 +24,32 @@ export const formatAnnouncement = (
   const fromKey = fromRegion.key.replace(/[^a-z0-9_]/gi, '');
   const toKey = (toRegion?.key ?? order.toRegion).replace(/[^a-z0-9_]/gi, '');
 
+  const fromDistrict = order.fromDistrict
+    ? `, ${escapeMarkdown(order.fromDistrict)}`
+    : '';
+  const toDistrict = order.toDistrict
+    ? `, ${escapeMarkdown(order.toDistrict)}`
+    : '';
+
+  const fromLocation = `${escapeMarkdown(fromRegion.nameUz)}${fromDistrict}`;
+  const toLocation = `${escapeMarkdown(toRegion?.nameUz ?? order.toRegion)}${toDistrict}`;
+
+  // Normalize phone: ensure it starts with +
+  const rawPhone = order.user.phone.startsWith('+')
+    ? order.user.phone
+    : `+${order.user.phone}`;
+  const phoneLink = `[${rawPhone}](tel:${rawPhone})`;
+
   return [
     '🚛 *YANGI YUK BUYURTMASI*',
     '',
     `📦 *Yuk:* ${escapeMarkdown(order.cargoName)}`,
-    `📍 *Qayerdan:* ${escapeMarkdown(fromRegion.nameUz)}`,
-    `📍 *Qayerga:* ${escapeMarkdown(toRegion?.nameUz ?? order.toRegion)}`,
+    `📍 *Qayerdan:* ${fromLocation}`,
+    `📍 *Qayerga:* ${toLocation}`,
     `⚖️ *Og'irlik:* ${escapeMarkdown(order.weight)}`,
     `🚚 *Mashina:* ${escapeMarkdown(order.truckType)}`,
     `💰 *Narx:* ${escapeMarkdown(order.price || 'Kelishiladi')}`,
-    `📞 *Mijoz:* ${escapeMarkdown(order.user.phone)}`,
+    `📞 *Mijoz:* ${phoneLink}`,
     '',
     `⏰ ${escapeMarkdown(formatTime(order.createdAt))} da yuborildi`,
     '',

@@ -22,7 +22,9 @@ export class OrdersService {
   async createOrder(input: {
     userId: string;
     fromRegion: string;
+    fromDistrict: string;
     toRegion: string;
+    toDistrict: string;
     cargoName: string;
     weight: string;
     truckType: string;
@@ -47,7 +49,9 @@ export class OrdersService {
       data: {
         userId: input.userId,
         fromRegion: normalizeRegionKey(input.fromRegion),
+        fromDistrict: normalizeText(input.fromDistrict),
         toRegion: normalizeRegionKey(input.toRegion),
+        toDistrict: normalizeText(input.toDistrict),
         cargoName: normalizeText(input.cargoName),
         weight: normalizeText(input.weight),
         truckType: normalizeText(input.truckType),
@@ -57,6 +61,7 @@ export class OrdersService {
     });
 
     await this.notificationProducer.addNotificationJob(order.id);
+    await this.notificationProducer.addExpiryJob(order.id, 24 * 60 * 60 * 1000);
     return order;
   }
 
@@ -128,6 +133,14 @@ export class OrdersService {
 
   async cancelOrder(id: string): Promise<Order> {
     return this.updateStatus(id, OrderStatus.cancelled);
+  }
+
+  async completeOrder(id: string): Promise<Order> {
+    return this.updateStatus(id, OrderStatus.completed);
+  }
+
+  async expireOrder(id: string): Promise<Order> {
+    return this.updateStatus(id, OrderStatus.expired);
   }
 
   async getStats() {

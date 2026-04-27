@@ -25,7 +25,9 @@ model Order {
   id                String      @id @default(uuid())
   userId            String      @map("user_id")
   fromRegion        String      @map("from_region")
+  fromDistrict      String      @default("") @map("from_district")
   toRegion          String      @map("to_region")
+  toDistrict        String      @default("") @map("to_district")
   cargoName         String      @map("cargo_name")
   weight            String
   truckType         String      @map("truck_type")
@@ -68,6 +70,8 @@ enum OrderStatus {
   pending
   active
   cancelled
+  completed
+  expired
 }
 
 enum AdminRole {

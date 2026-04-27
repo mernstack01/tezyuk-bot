@@ -15,11 +15,21 @@ export class NotificationProducer {
       { orderId },
       {
         attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
+        backoff: { type: 'exponential', delay: 2000 },
         removeOnComplete: 100,
+      },
+    );
+  }
+
+  async addExpiryJob(orderId: string, delayMs: number): Promise<void> {
+    await this.notificationsQueue.add(
+      'expire-order',
+      { orderId },
+      {
+        delay: delayMs,
+        attempts: 2,
+        backoff: { type: 'fixed', delay: 5000 },
+        removeOnComplete: 50,
       },
     );
   }

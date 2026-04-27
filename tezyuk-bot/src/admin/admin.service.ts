@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, LoggerService } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { OrdersService } from 'src/orders/orders.service';
 import { RegionsService } from 'src/regions/regions.service';
 import { UsersService } from 'src/users/users.service';
@@ -13,9 +15,12 @@ import { UpdateRegionDto } from './dto/update-region.dto';
 export class AdminService {
   constructor(
     @InjectBot() private readonly bot: Telegraf,
+    private readonly configService: ConfigService,
     private readonly ordersService: OrdersService,
     private readonly usersService: UsersService,
     private readonly regionsService: RegionsService,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
   ) {}
 
   getOrders(params: {
@@ -37,16 +42,33 @@ export class AdminService {
 
   async deleteOrder(id: string) {
     const order = await this.ordersService.cancelOrder(id);
+    const groupId = this.configService.get<string>('GROUP_ID', '');
 
-    // Notify the user about cancellation
+    if (order.telegramMessageId && groupId) {
+      try {
+        await this.bot.telegram.deleteMessage(groupId, order.telegramMessageId);
+      } catch (err) {
+        this.logger.warn(
+          `Guruh xabarini o'chirib bo'lmadi: ${err instanceof Error ? err.message : err}`,
+        );
+      }
+    }
+
     try {
       const user = await this.usersService.ensureExists(order.userId);
+      const fromDistrict = order.fromDistrict ? `, ${order.fromDistrict}` : '';
+      const toDistrict = order.toDistrict ? `, ${order.toDistrict}` : '';
       await this.bot.telegram.sendMessage(
         Number(user.telegramId),
         `❌ Sizning e'loningiz admin tomonidan bekor qilindi.\n\n` +
-        `📦 ${order.cargoName} | ${order.fromRegion} → ${order.toRegion}`,
+          `📦 ${order.cargoName}\n` +
+          `📍 ${order.fromRegion}${fromDistrict} → ${order.toRegion}${toDistrict}`,
       );
-    } catch {}
+    } catch (err) {
+      this.logger.warn(
+        `Foydalanuvchiga xabar yuborib bo'lmadi: ${err instanceof Error ? err.message : err}`,
+      );
+    }
 
     return order;
   }

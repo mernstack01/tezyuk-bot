@@ -12,6 +12,7 @@ import {
 import { Markup, Scenes } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
+import { ConfigService } from '@nestjs/config';
 import { OrdersService } from 'src/orders/orders.service';
 import { UsersService } from 'src/users/users.service';
 import { mainKeyboard } from './keyboards/main.keyboard';
@@ -21,17 +22,20 @@ type BotContext = Scenes.WizardContext;
 
 const CONTACT_TEXT = `📞 Bog'lanish uchun:\n\nSavollar va takliflar uchun admin bilan bog'laning.`;
 
-const HELP_TEXT = `❓ *Yordam*\n\n` +
+const HELP_TEXT =
+  `❓ *Yordam*\n\n` +
   `📦 *E'lon berish* — yuk tashish uchun e'lon joylashtiring\n` +
   `📋 *Mening e'lonlarim* — oxirgi 10 ta e'loningiz\n` +
   `🌐 *Tilni o'zgartirish* — UZ / RU\n\n` +
-  `⚠️ Kuniga 5 tadan ko'p e'lon joylashtirib bo'lmaydi`;
+  `⚠️ Kuniga 5 tadan ko'p e'lon joylashtirib bo'lmaydi\n` +
+  `⏰ E'lonlar 24 soatdan keyin avtomatik yopiladi`;
 
 @Injectable()
 @Update()
 export class TelegramService implements OnModuleInit {
   constructor(
     @InjectBot() private readonly bot: Telegraf,
+    private readonly configService: ConfigService,
     private readonly usersService: UsersService,
     private readonly ordersService: OrdersService,
   ) {}
@@ -59,10 +63,15 @@ export class TelegramService implements OnModuleInit {
       return;
     }
 
-    await ctx.reply(
-      `👋 Xush kelibsiz, *${user.fullName}*!`,
-      { ...mainKeyboard(), parse_mode: 'Markdown' },
-    );
+    if (user.isBlocked) {
+      await ctx.reply("🚫 Hisobingiz bloklangan. Murojaat uchun admin bilan bog'laning.");
+      return;
+    }
+
+    await ctx.reply(`👋 Xush kelibsiz, *${user.fullName}*!`, {
+      ...mainKeyboard(),
+      parse_mode: 'Markdown',
+    });
   }
 
   @Command('order')
@@ -86,7 +95,10 @@ export class TelegramService implements OnModuleInit {
 
     const orders = await this.ordersService.listForUser(user.id);
     if (!orders.length) {
-      await ctx.reply("📋 Sizda hali e'lonlar yo'q\n\n📦 E'lon berish tugmasini bosing!", mainKeyboard());
+      await ctx.reply(
+        "📋 Sizda hali e'lonlar yo'q\n\n📦 E'lon berish tugmasini bosing!",
+        mainKeyboard(),
+      );
       return;
     }
 
@@ -94,29 +106,41 @@ export class TelegramService implements OnModuleInit {
       pending: '🟡',
       active: '🟢',
       cancelled: '🔴',
+      completed: '✅',
+      expired: '⏰',
     };
 
     const recent = orders.slice(0, 10);
 
     const text = recent
-      .map(
-        (order, i) =>
-          `${i + 1}. ${statusIcon[order.status] ?? '⚪'} ${order.fromRegion} → ${order.toRegion}\n` +
+      .map((order, i) => {
+        const fromLocation = order.fromDistrict
+          ? `${order.fromRegion}, ${order.fromDistrict}`
+          : order.fromRegion;
+        const toLocation = order.toDistrict
+          ? `${order.toRegion}, ${order.toDistrict}`
+          : order.toRegion;
+        return (
+          `${i + 1}. ${statusIcon[order.status] ?? '⚪'} ${fromLocation} → ${toLocation}\n` +
           `   ${order.cargoName} | ${order.weight}\n` +
-          `   💰 ${order.price || 'Kelishiladi'}`,
-      )
+          `   💰 ${order.price || 'Kelishiladi'}`
+        );
+      })
       .join('\n\n');
 
-    const cancelButtons = recent
-      .map((order, i) =>
-        order.status === 'active'
-          ? [Markup.button.callback(`❌ ${i + 1}-e'lonni bekor qilish`, `cancelorder:${order.id}`)]
-          : null,
-      )
-      .filter((row): row is NonNullable<typeof row> => row !== null);
+    const actionButtons = recent
+      .flatMap((order, i) => {
+        if (order.status !== 'active') return [];
+        return [
+          [
+            Markup.button.callback(`✅ ${i + 1} — Topildim`, `completeorder:${order.id}`),
+            Markup.button.callback(`❌ ${i + 1} — Bekor`, `cancelorder:${order.id}`),
+          ],
+        ];
+      });
 
-    const replyOptions = cancelButtons.length
-      ? { parse_mode: 'Markdown' as const, ...Markup.inlineKeyboard(cancelButtons) }
+    const replyOptions = actionButtons.length
+      ? { parse_mode: 'Markdown' as const, ...Markup.inlineKeyboard(actionButtons) }
       : { parse_mode: 'Markdown' as const, ...mainKeyboard() };
 
     await ctx.reply(`📋 *Mening e'lonlarim:*\n\n${text}`, replyOptions);
@@ -125,14 +149,71 @@ export class TelegramService implements OnModuleInit {
   @Action(/^cancelorder:/)
   async cancelMyOrder(@Ctx() ctx: BotContext) {
     await ctx.answerCbQuery();
-    const data = ctx.callbackQuery && 'data' in ctx.callbackQuery
-      ? ctx.callbackQuery.data
-      : '';
+    const data =
+      ctx.callbackQuery && 'data' in ctx.callbackQuery
+        ? ctx.callbackQuery.data
+        : '';
     const orderId = data.replace('cancelorder:', '');
 
+    if (!ctx.from) return;
+
     try {
-      await this.ordersService.cancelOrder(orderId);
+      const order = await this.ordersService.findById(orderId);
+      const user = await this.usersService.findByTelegramId(BigInt(ctx.from.id));
+
+      if (!user || order.userId !== user.id) {
+        await ctx.reply("⚠️ Bu e'lon sizga tegishli emas.");
+        return;
+      }
+
+      const cancelled = await this.ordersService.cancelOrder(orderId);
+
+      const groupId = this.configService.get<string>('GROUP_ID', '');
+      if (cancelled.telegramMessageId && groupId) {
+        try {
+          await this.bot.telegram.deleteMessage(groupId, cancelled.telegramMessageId);
+        } catch {}
+      }
+
       await ctx.editMessageText("✅ E'lon bekor qilindi", Markup.inlineKeyboard([]));
+    } catch {
+      await ctx.reply("Xatolik yuz berdi. Qayta urinib ko'ring.");
+    }
+  }
+
+  @Action(/^completeorder:/)
+  async completeMyOrder(@Ctx() ctx: BotContext) {
+    await ctx.answerCbQuery();
+    const data =
+      ctx.callbackQuery && 'data' in ctx.callbackQuery
+        ? ctx.callbackQuery.data
+        : '';
+    const orderId = data.replace('completeorder:', '');
+
+    if (!ctx.from) return;
+
+    try {
+      const order = await this.ordersService.findById(orderId);
+      const user = await this.usersService.findByTelegramId(BigInt(ctx.from.id));
+
+      if (!user || order.userId !== user.id) {
+        await ctx.reply("⚠️ Bu e'lon sizga tegishli emas.");
+        return;
+      }
+
+      const completed = await this.ordersService.completeOrder(orderId);
+
+      const groupId = this.configService.get<string>('GROUP_ID', '');
+      if (completed.telegramMessageId && groupId) {
+        try {
+          await this.bot.telegram.deleteMessage(groupId, completed.telegramMessageId);
+        } catch {}
+      }
+
+      await ctx.editMessageText(
+        "✅ E'lon yopildi — haydovchi topildi deb belgilandi",
+        Markup.inlineKeyboard([]),
+      );
     } catch {
       await ctx.reply("Xatolik yuz berdi. Qayta urinib ko'ring.");
     }
@@ -191,12 +272,10 @@ export class TelegramService implements OnModuleInit {
     const elonlarTopicId = Number(process.env.ANNOUNCEMENT_TOPIC_ID);
     if (!threadId || threadId !== elonlarTopicId) return;
 
-    // Delete the user's message to keep Elonlar topic clean
     try {
       await ctx.deleteMessage();
     } catch {}
 
-    // Notify the user via private message
     const botUsername = this.bot.botInfo?.username;
     try {
       await ctx.telegram.sendMessage(

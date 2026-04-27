@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleDestroy } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TelegrafModule, TELEGRAF_STAGE } from 'nestjs-telegraf';
 import { Scenes, session } from 'telegraf';
@@ -15,6 +15,9 @@ import { createRegisterScene } from './scenes/register.scene';
 import { TelegramService } from './telegram.service';
 
 const SESSION_TTL_SECONDS = 3600;
+
+// Module-scoped reference for graceful shutdown
+let sessionRedis: Redis | null = null;
 
 function createRedisSessionStore(redis: Redis) {
   return {
@@ -37,15 +40,12 @@ function createRedisSessionStore(redis: Redis) {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const redis = new Redis(
+        sessionRedis = new Redis(
           configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
         );
-
         return {
           token: configService.get<string>('BOT_TOKEN', ''),
-          middlewares: [
-            session({ store: createRedisSessionStore(redis) }),
-          ],
+          middlewares: [session({ store: createRedisSessionStore(sessionRedis) })],
         };
       },
     }),
@@ -73,4 +73,9 @@ function createRedisSessionStore(redis: Redis) {
     },
   ],
 })
-export class TelegramModule {}
+export class TelegramModule implements OnModuleDestroy {
+  onModuleDestroy() {
+    sessionRedis?.disconnect();
+    sessionRedis = null;
+  }
+}

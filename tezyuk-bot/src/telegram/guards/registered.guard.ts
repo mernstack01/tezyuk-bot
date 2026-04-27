@@ -24,13 +24,17 @@ export class RegisteredGuard implements CanActivate {
     }
 
     const user = await this.usersService.findByTelegramId(BigInt(ctx.from.id));
+
+    if (user?.isBlocked) {
+      await ctx.reply("🚫 Hisobingiz bloklangan. Murojaat uchun admin bilan bog'laning.");
+      return false;
+    }
+
     if (user) {
       return true;
     }
 
-    await ctx.reply(
-      "⚠️ Avval ro'yxatdan o'ting.\n\n/start ni bosing.",
-    );
+    await ctx.reply("⚠️ Avval ro'yxatdan o'ting.\n\n/start ni bosing.");
     return false;
   }
 }
