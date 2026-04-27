@@ -39,27 +39,38 @@ function createRedisSessionStore(redis: Redis) {
     TelegrafModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
+      useFactory: async (configService: ConfigService) => {
         sessionRedis = new Redis(
           configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
         );
 
+        const token = configService.get<string>('BOT_TOKEN', '');
         const isProduction = configService.get<string>('NODE_ENV') === 'production';
         const webhookDomain = configService.get<string>('WEBHOOK_DOMAIN', '');
 
+        if (!isProduction || !webhookDomain) {
+          // Interrupt any existing polling session (local or remote)
+          // before starting our own — prevents 409 Conflict
+          try {
+            await fetch(
+              `https://api.telegram.org/bot${token}/getUpdates?timeout=0&offset=-1`,
+            );
+          } catch {}
+        }
+
         return {
-          token: configService.get<string>('BOT_TOKEN', ''),
+          token,
           middlewares: [session({ store: createRedisSessionStore(sessionRedis) })],
-          ...(isProduction && webhookDomain
+          launchOptions: isProduction && webhookDomain
             ? {
-                launchOptions: {
-                  webhook: {
-                    domain: webhookDomain,
-                    port: Number(configService.get<string>('PORT', '9001')),
-                  },
+                webhook: {
+                  domain: webhookDomain,
+                  port: Number(configService.get<string>('PORT', '9001')),
                 },
               }
-            : {}),
+            : {
+                dropPendingUpdates: true,
+              },
         };
       },
     }),

@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, UseGuards } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit, UseGuards } from '@nestjs/common';
 import { Language } from '@prisma/client';
 import {
   Action,
@@ -32,13 +32,17 @@ const HELP_TEXT =
 
 @Injectable()
 @Update()
-export class TelegramService implements OnModuleInit {
+export class TelegramService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectBot() private readonly bot: Telegraf,
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
     private readonly ordersService: OrdersService,
   ) {}
+
+  async onModuleDestroy() {
+    this.bot.stop('SIGTERM');
+  }
 
   async onModuleInit() {
     await this.bot.telegram.setMyCommands([
