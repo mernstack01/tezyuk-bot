@@ -9,7 +9,14 @@ export interface User {
   fullName: string;
   language: Language;
   isBlocked: boolean;
+  dailyOrderLimit: number | null;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface AppSettings {
+  id: number;
+  dailyOrderLimit: number;
   updatedAt: string;
 }
 

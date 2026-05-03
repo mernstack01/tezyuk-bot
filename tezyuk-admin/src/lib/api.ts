@@ -1,4 +1,5 @@
 import type {
+  AppSettings,
   LoginResponse,
   Order,
   OrderStatus,
@@ -86,6 +87,20 @@ export const usersApi = {
     ),
   toggleBlock: (id: string) =>
     request<User>(`/admin/users/${id}/block`, { method: 'PATCH' }),
+  setDailyLimit: (id: string, limit: number | null) =>
+    request<User>(`/admin/users/${id}/daily-limit`, {
+      method: 'PATCH',
+      body: JSON.stringify({ limit }),
+    }),
+};
+
+export const settingsApi = {
+  get: () => request<AppSettings>('/admin/settings'),
+  update: (dailyOrderLimit: number) =>
+    request<AppSettings>('/admin/settings', {
+      method: 'PATCH',
+      body: JSON.stringify({ dailyOrderLimit }),
+    }),
 };
 
 export const regionsApi = {

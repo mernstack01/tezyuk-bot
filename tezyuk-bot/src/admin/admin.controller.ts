@@ -21,8 +21,10 @@ import {
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { AdminService } from './admin.service';
 import { CreateRegionDto } from './dto/create-region.dto';
+import { SetUserDailyLimitDto } from './dto/set-user-daily-limit.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { UpdateRegionDto } from './dto/update-region.dto';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -84,6 +86,12 @@ export class AdminController {
     return this.adminService.toggleUserBlock(id);
   }
 
+  @Patch('users/:id/daily-limit')
+  @ApiOperation({ summary: "Foydalanuvchi kunlik limitini o'rnatish (null = global default)" })
+  setUserDailyLimit(@Param('id') id: string, @Body() dto: SetUserDailyLimitDto) {
+    return this.adminService.setUserDailyLimit(id, dto.limit ?? null);
+  }
+
   @Get('regions')
   @ApiOperation({ summary: "Hududlar ro'yxati" })
   getRegions() {
@@ -103,6 +111,18 @@ export class AdminController {
   @ApiOperation({ summary: "Yangi hudud qo'shish" })
   createRegion(@Body() dto: CreateRegionDto) {
     return this.adminService.createRegion(dto);
+  }
+
+  @Get('settings')
+  @ApiOperation({ summary: 'Global sozlamalar' })
+  getSettings() {
+    return this.adminService.getSettings();
+  }
+
+  @Patch('settings')
+  @ApiOperation({ summary: 'Global sozlamalarni yangilash' })
+  updateSettings(@Body() dto: UpdateSettingsDto) {
+    return this.adminService.updateSettings(dto);
   }
 
   @Get('stats')

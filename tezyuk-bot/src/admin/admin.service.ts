@@ -6,10 +6,12 @@ import { Telegraf } from 'telegraf';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { OrdersService } from 'src/orders/orders.service';
 import { RegionsService } from 'src/regions/regions.service';
+import { SettingsService } from 'src/settings/settings.service';
 import { UsersService } from 'src/users/users.service';
 import { CreateRegionDto } from './dto/create-region.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { UpdateRegionDto } from './dto/update-region.dto';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 @Injectable()
 export class AdminService {
@@ -19,6 +21,7 @@ export class AdminService {
     private readonly ordersService: OrdersService,
     private readonly usersService: UsersService,
     private readonly regionsService: RegionsService,
+    private readonly settingsService: SettingsService,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
     private readonly logger: LoggerService,
   ) {}
@@ -95,5 +98,17 @@ export class AdminService {
 
   getStats() {
     return this.ordersService.getStats();
+  }
+
+  getSettings() {
+    return this.settingsService.getSettings();
+  }
+
+  updateSettings(dto: UpdateSettingsDto) {
+    return this.settingsService.updateDailyLimit(dto.dailyOrderLimit);
+  }
+
+  setUserDailyLimit(id: string, limit: number | null) {
+    return this.usersService.setDailyLimit(id, limit);
   }
 }

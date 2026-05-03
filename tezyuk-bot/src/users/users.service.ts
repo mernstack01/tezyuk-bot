@@ -79,4 +79,12 @@ export class UsersService {
       data: { language },
     });
   }
+
+  async setDailyLimit(id: string, limit: number | null): Promise<User> {
+    await this.ensureExists(id);
+    return this.prisma.user.update({
+      where: { id },
+      data: { dailyOrderLimit: limit },
+    });
+  }
 }

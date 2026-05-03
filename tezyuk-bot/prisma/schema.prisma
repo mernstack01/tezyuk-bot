@@ -8,17 +8,26 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(uuid())
-  telegramId BigInt   @unique @map("telegram_id")
-  phone      String
-  fullName   String   @map("full_name")
-  language   Language @default(uz)
-  isBlocked  Boolean  @default(false) @map("is_blocked")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  orders     Order[]
+  id              String   @id @default(uuid())
+  telegramId      BigInt   @unique @map("telegram_id")
+  phone           String
+  fullName        String   @map("full_name")
+  language        Language @default(uz)
+  isBlocked       Boolean  @default(false) @map("is_blocked")
+  dailyOrderLimit Int?     @map("daily_order_limit")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  orders          Order[]
 
   @@map("users")
+}
+
+model AppSettings {
+  id              Int      @id @default(1)
+  dailyOrderLimit Int      @default(12) @map("daily_order_limit")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
 }
 
 model Order {

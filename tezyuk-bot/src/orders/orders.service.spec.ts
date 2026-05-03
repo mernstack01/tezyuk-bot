@@ -13,6 +13,7 @@ const mockPrisma = {
   },
   user: {
     count: jest.fn(),
+    findUnique: jest.fn().mockResolvedValue({ dailyOrderLimit: null }),
   },
   $transaction: jest.fn(),
 };
@@ -22,14 +23,20 @@ const mockNotificationProducer = {
   addExpiryJob: jest.fn(),
 };
 
+const mockSettingsService = {
+  getDailyLimit: jest.fn().mockResolvedValue(12),
+};
+
 describe('OrdersService', () => {
   let service: OrdersService;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSettingsService.getDailyLimit.mockResolvedValue(12);
     service = new OrdersService(
       mockPrisma as never,
       mockNotificationProducer as never,
+      mockSettingsService as never,
     );
   });
 
@@ -46,8 +53,16 @@ describe('OrdersService', () => {
       price: '500 000',
     };
 
-    it('kunlik limit (5) dan oshsa BadRequestException tashlaydi', async () => {
-      mockPrisma.order.count.mockResolvedValueOnce(5);
+    it('kunlik limit (global 12) dan oshsa BadRequestException tashlaydi', async () => {
+      // user.dailyOrderLimit = null → global default 12 ishlatiladi
+      mockPrisma.user.findUnique.mockResolvedValueOnce({ dailyOrderLimit: null });
+      mockPrisma.order.count.mockResolvedValueOnce(12);
+      await expect(service.createOrder(validInput)).rejects.toThrow(BadRequestException);
+    });
+
+    it('foydalanuvchiga alohida limit belgilansa o\'sha limitdan foydalaniladi', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce({ dailyOrderLimit: 3 });
+      mockPrisma.order.count.mockResolvedValueOnce(3);
       await expect(service.createOrder(validInput)).rejects.toThrow(BadRequestException);
     });
 

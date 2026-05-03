@@ -11,12 +11,14 @@ import {
   normalizeText,
 } from 'src/common/utils/formatter.util';
 import { NotificationProducer } from 'src/notifications/notification.producer';
+import { SettingsService } from 'src/settings/settings.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationProducer: NotificationProducer,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async createOrder(input: {
@@ -32,6 +34,13 @@ export class OrdersService {
     contactPhone?: string;
     extraInfo?: string;
   }): Promise<Order> {
+    const userData = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+      select: { dailyOrderLimit: true },
+    });
+    const effectiveLimit =
+      userData?.dailyOrderLimit ?? (await this.settingsService.getDailyLimit());
+
     const count = await this.prisma.order.count({
       where: {
         userId: input.userId,
@@ -39,8 +48,8 @@ export class OrdersService {
       },
     });
 
-    if (count >= 5) {
-      throw new BadRequestException('Kunlik limit 5 ta buyurtma');
+    if (count >= effectiveLimit) {
+      throw new BadRequestException(`Kunlik limit ${effectiveLimit} ta buyurtma`);
     }
 
     if (!containsNumber(input.weight)) {

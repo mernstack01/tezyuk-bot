@@ -204,7 +204,15 @@ export const createOrderScene = (
         return;
       }
 
-      state.fromDistrict = text === '—' ? '' : text;
+      if (state.isFromForeign) {
+        // Chet el → UZ: fromDistrict = "Davlat, Shahar" (country + city combined)
+        const city = text === '—' ? '' : text;
+        state.fromDistrict = city
+          ? `${state.fromRegionName ?? ''}, ${city}`
+          : (state.fromRegionName ?? '');
+      } else {
+        state.fromDistrict = text === '—' ? '' : text;
+      }
 
       if (state.isForeign) {
         // UZ → Chet el: TO davlat nomini so'rash
@@ -285,7 +293,15 @@ export const createOrderScene = (
         return;
       }
 
-      state.toDistrict = text === '—' ? '' : text;
+      if (state.isForeign) {
+        // UZ → Chet el: toDistrict = "Davlat, Shahar" (country + city combined)
+        const city = text === '—' ? '' : text;
+        state.toDistrict = city
+          ? `${state.toRegionName ?? ''}, ${city}`
+          : (state.toRegionName ?? '');
+      } else {
+        state.toDistrict = text === '—' ? '' : text;
+      }
 
       await ctx.reply('Yuk nomi va tavsifi?', cancelKeyboard());
       return ctx.wizard.next();
@@ -380,12 +396,17 @@ export const createOrderScene = (
       await ctx.answerCbQuery();
       state.truckType = data.split(':')[1];
 
-      const fromLocation = state.fromDistrict
-        ? `${state.fromRegionName ?? ''}, ${state.fromDistrict}`
-        : (state.fromRegionName ?? '');
-      const toLocation = state.toDistrict
-        ? `${state.toRegionName ?? ''}, ${state.toDistrict}`
-        : (state.toRegionName ?? '');
+      // Chet el yo'nalishida fromDistrict allaqachon "Davlat, Shahar" ni o'z ichiga oladi
+      const fromLocation = state.isFromForeign
+        ? (state.fromDistrict ?? state.fromRegionName ?? '')
+        : (state.fromDistrict
+            ? `${state.fromRegionName ?? ''}, ${state.fromDistrict}`
+            : (state.fromRegionName ?? ''));
+      const toLocation = state.isForeign
+        ? (state.toDistrict ?? state.toRegionName ?? '')
+        : (state.toDistrict
+            ? `${state.toRegionName ?? ''}, ${state.toDistrict}`
+            : (state.toRegionName ?? ''));
 
       await ctx.reply(
         [
@@ -409,9 +430,8 @@ export const createOrderScene = (
       return ctx.wizard.next();
     },
 
-    // Qadam 10: Tasdiqlash qabul qilish → telefon tanlash
+    // Qadam 11: Tasdiqlash qabul qilish → telefon tanlash
     async (ctx) => {
-      const state = ctx.wizard.state as OrderState;
       const callbackQuery = ctx.callbackQuery;
       const data =
         callbackQuery && 'data' in callbackQuery ? callbackQuery.data : undefined;
