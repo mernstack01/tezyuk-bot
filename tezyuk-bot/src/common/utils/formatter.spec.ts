@@ -24,6 +24,8 @@ const makeOrder = (overrides: Partial<Order & { user: User }> = {}): Order & { u
   weight: '2 tonna',
   truckType: 'Tentli',
   price: '500 000',
+  contactPhone: null,
+  extraInfo: null,
   status: OrderStatus.active,
   telegramMessageId: null,
   createdAt: new Date('2024-01-01T10:30:00Z'),

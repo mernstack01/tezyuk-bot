@@ -32,6 +32,8 @@ model Order {
   weight            String
   truckType         String      @map("truck_type")
   price             String      @default("")
+  contactPhone      String?     @map("contact_phone")
+  extraInfo         String?     @map("extra_info")
   status            OrderStatus @default(active)
   telegramMessageId Int?        @map("telegram_message_id")
   createdAt         DateTime    @default(now()) @map("created_at")

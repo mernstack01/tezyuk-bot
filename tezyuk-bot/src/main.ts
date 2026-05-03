@@ -69,4 +69,12 @@ async function bootstrap() {
   await app.listen(port);
 }
 
+process.on('uncaughtException', (err) => {
+  console.error('[CRASH PREVENTED] uncaughtException:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[CRASH PREVENTED] unhandledRejection:', reason);
+});
+
 void bootstrap();

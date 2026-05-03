@@ -14,7 +14,9 @@ import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { ConfigService } from '@nestjs/config';
 import { OrdersService } from 'src/orders/orders.service';
+import { RegionsService } from 'src/regions/regions.service';
 import { UsersService } from 'src/users/users.service';
+import { formatAnnouncement } from 'src/common/utils/formatter.util';
 import { mainKeyboard } from './keyboards/main.keyboard';
 import { RegisteredGuard } from './guards/registered.guard';
 
@@ -38,6 +40,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
     private readonly ordersService: OrdersService,
+    private readonly regionsService: RegionsService,
   ) {}
 
   async onModuleDestroy() {
@@ -107,7 +110,14 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    const orders = await this.ordersService.listForUser(user.id);
+    let orders: Awaited<ReturnType<typeof this.ordersService.listForUser>>;
+    try {
+      orders = await this.ordersService.listForUser(user.id);
+    } catch (err) {
+      console.error('[myOrders] DB xatosi:', err);
+      await ctx.reply("⚠️ Ma'lumotlarni yuklashda xatolik yuz berdi. Keyinroq urinib ko'ring.", mainKeyboard());
+      return;
+    }
     if (!orders.length) {
       await ctx.reply(
         "📋 Sizda hali e'lonlar yo'q\n\n📦 E'lon berish tugmasini bosing!",
@@ -158,6 +168,13 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       : { parse_mode: 'Markdown' as const, ...mainKeyboard() };
 
     await ctx.reply(`📋 *Mening e'lonlarim:*\n\n${text}`, replyOptions);
+  }
+
+  // "📋 E'lonlarim" inline tugmasi uchun (reminder xabarida)
+  @Action('myorders:show')
+  async myOrdersAction(@Ctx() ctx: BotContext) {
+    await ctx.answerCbQuery();
+    await this.myOrders(ctx);
   }
 
   @Action(/^cancelorder:/)
@@ -215,14 +232,39 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      const completed = await this.ordersService.completeOrder(orderId);
+      await this.ordersService.completeOrder(orderId);
 
       const groupId = this.configService.get<string>('GROUP_ID', '');
-      if (completed.telegramMessageId && groupId) {
+
+      // Feature 5: o'chirish o'rniga guruhdagi xabarni tahrirlash
+      if (order.telegramMessageId && groupId) {
         try {
-          await this.bot.telegram.deleteMessage(groupId, completed.telegramMessageId);
+          const fromRegion = await this.regionsService.findByKey(order.fromRegion);
+          const toRegion = await this.regionsService.findByKey(order.toRegion);
+
+          if (fromRegion) {
+            const editedText = formatAnnouncement(order, fromRegion, toRegion, {
+              hidePhone: true,
+              completed: true,
+            });
+            await this.bot.telegram.editMessageText(
+              groupId,
+              order.telegramMessageId,
+              undefined,
+              editedText,
+              { parse_mode: 'Markdown' },
+            );
+          }
         } catch {}
       }
+
+      // Foydalanuvchiga raqam yashirilgani haqida DM
+      try {
+        await this.bot.telegram.sendMessage(
+          ctx.from.id,
+          "✅ E'loningiz yopildi. Raqamingiz haydovchilardan yashirildi.",
+        );
+      } catch {}
 
       await ctx.editMessageText(
         "✅ E'lon yopildi — haydovchi topildi deb belgilandi",

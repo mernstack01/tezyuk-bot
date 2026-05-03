@@ -29,6 +29,8 @@ export class OrdersService {
     weight: string;
     truckType: string;
     price: string;
+    contactPhone?: string;
+    extraInfo?: string;
   }): Promise<Order> {
     const count = await this.prisma.order.count({
       where: {
@@ -56,6 +58,8 @@ export class OrdersService {
         weight: normalizeText(input.weight),
         truckType: normalizeText(input.truckType),
         price: normalizeText(input.price),
+        contactPhone: input.contactPhone ?? null,
+        extraInfo: input.extraInfo ?? null,
         status: OrderStatus.active,
       },
     });

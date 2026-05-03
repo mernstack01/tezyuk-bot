@@ -17,6 +17,8 @@ const regions = [
   { key: 'sirdaryo', nameUz: 'Sirdaryo', topicId: 0 },
   { key: 'navoiy', nameUz: 'Navoiy', topicId: 0 },
   { key: 'qoraqalpog', nameUz: "Qoraqalpog'iston", topicId: 0 },
+  // Chet davlatlar — faqat "qayerga" uchun, qayerdan da ko'rinmasin (scene ichida filtrlanadi)
+  { key: 'foreign', nameUz: 'Chet Davlatlar (MDH + Xitoy)', topicId: 49 },
 ];
 
 async function main() {

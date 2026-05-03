@@ -20,6 +20,7 @@ export const formatAnnouncement = (
   order: Order & { user: User },
   fromRegion: Region,
   toRegion: Region | null,
+  options: { hidePhone?: boolean; completed?: boolean } = {},
 ): string => {
   const fromKey = fromRegion.key.replace(/[^a-z0-9_]/gi, '');
   const toKey = (toRegion?.key ?? order.toRegion).replace(/[^a-z0-9_]/gi, '');
@@ -34,14 +35,20 @@ export const formatAnnouncement = (
   const fromLocation = `${escapeMarkdown(fromRegion.nameUz)}${fromDistrict}`;
   const toLocation = `${escapeMarkdown(toRegion?.nameUz ?? order.toRegion)}${toDistrict}`;
 
-  // Normalize phone: ensure it starts with +
-  const rawPhone = order.user.phone.startsWith('+')
-    ? order.user.phone
-    : `+${order.user.phone}`;
-  const phoneLink = `[${rawPhone}](tel:${rawPhone})`;
+  // contactPhone ustunlik qiladi, yo'q bo'lsa user.phone ishlatiladi
+  const phoneSource = order.contactPhone ?? order.user.phone;
+  const rawPhone = phoneSource.startsWith('+') ? phoneSource : `+${phoneSource}`;
+  const phoneDisplay = options.hidePhone
+    ? '🔒 Yashirilgan'
+    : `[${rawPhone}](tel:${rawPhone})`;
+
+  // Yopilgan e'lonlarda YOPILDI badge qo'shiladi
+  const header = options.completed
+    ? '✅ *YOPILDI* — 🚛 *YUK BUYURTMASI*'
+    : '🚛 *YANGI YUK BUYURTMASI*';
 
   return [
-    '🚛 *YANGI YUK BUYURTMASI*',
+    header,
     '',
     `📦 *Yuk:* ${escapeMarkdown(order.cargoName)}`,
     `📍 *Qayerdan:* ${fromLocation}`,
@@ -49,7 +56,8 @@ export const formatAnnouncement = (
     `⚖️ *Og'irlik:* ${escapeMarkdown(order.weight)}`,
     `🚚 *Mashina:* ${escapeMarkdown(order.truckType)}`,
     `💰 *Narx:* ${escapeMarkdown(order.price || 'Kelishiladi')}`,
-    `📞 *Mijoz:* ${phoneLink}`,
+    ...(order.extraInfo ? [`📝 *Qo'shimcha:* ${escapeMarkdown(order.extraInfo)}`] : []),
+    `📞 *Mijoz:* ${phoneDisplay}`,
     '',
     `⏰ ${escapeMarkdown(formatTime(order.createdAt))} da yuborildi`,
     '',
