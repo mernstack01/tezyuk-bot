@@ -63,7 +63,7 @@ export class NotificationProcessor extends WorkerHost {
     try {
       const announcementMsg = await this.bot.telegram.sendMessage(groupId, text, {
         parse_mode: parseMode,
-        message_thread_id: announcementTopicId,
+        ...(announcementTopicId > 0 ? { message_thread_id: announcementTopicId } : {}),
       });
       sentMessageId = announcementMsg.message_id;
     } catch (err) {
