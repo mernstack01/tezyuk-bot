@@ -40,9 +40,10 @@ function createRedisSessionStore(redis: Redis) {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        sessionRedis = new Redis(
-          configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
-        );
+        const redisUrl = configService.get<string>('REDIS_URL', 'redis://localhost:6379');
+        sessionRedis = new Redis(redisUrl, {
+          tls: redisUrl.startsWith('rediss://') ? {} : undefined,
+        });
 
         const token = configService.get<string>('BOT_TOKEN', '');
         const isProduction = configService.get<string>('NODE_ENV') === 'production';

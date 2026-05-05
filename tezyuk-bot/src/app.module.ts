@@ -29,6 +29,8 @@ import { UsersModule } from './users/users.module';
           configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
         );
 
+        const isTls = redisUrl.protocol === 'rediss:';
+
         return {
           connection: {
             host: redisUrl.hostname,
@@ -36,6 +38,7 @@ import { UsersModule } from './users/users.module';
             username: redisUrl.username || undefined,
             password: redisUrl.password || undefined,
             db: redisUrl.pathname ? Number(redisUrl.pathname.replace('/', '') || 0) : 0,
+            tls: isTls ? {} : undefined,
           },
         };
       },
