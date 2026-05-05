@@ -38,7 +38,7 @@ import { UsersModule } from './users/users.module';
             username: redisUrl.username || undefined,
             password: redisUrl.password || undefined,
             db: redisUrl.pathname ? Number(redisUrl.pathname.replace('/', '') || 0) : 0,
-            tls: isTls ? {} : undefined,
+            tls: isTls ? { rejectUnauthorized: false } : undefined,
           },
         };
       },

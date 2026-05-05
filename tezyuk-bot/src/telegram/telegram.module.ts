@@ -42,7 +42,7 @@ function createRedisSessionStore(redis: Redis) {
       useFactory: async (configService: ConfigService) => {
         const redisUrl = configService.get<string>('REDIS_URL', 'redis://localhost:6379');
         sessionRedis = new Redis(redisUrl, {
-          tls: redisUrl.startsWith('rediss://') ? {} : undefined,
+          tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
         });
 
         const token = configService.get<string>('BOT_TOKEN', '');
