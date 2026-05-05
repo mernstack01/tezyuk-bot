@@ -4,19 +4,19 @@ import { AdminRole, PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const regions = [
-  { key: 'toshkent', nameUz: 'Toshkent', topicId: 0 },
-  { key: 'samarqand', nameUz: 'Samarqand', topicId: 0 },
-  { key: 'andijon', nameUz: 'Andijon', topicId: 0 },
-  { key: 'namangan', nameUz: 'Namangan', topicId: 0 },
-  { key: 'fargona', nameUz: "Farg'ona", topicId: 0 },
-  { key: 'buxoro', nameUz: 'Buxoro', topicId: 0 },
-  { key: 'xorazm', nameUz: 'Xorazm', topicId: 0 },
-  { key: 'qashqadaryo', nameUz: 'Qashqadaryo', topicId: 0 },
-  { key: 'surxondaryo', nameUz: 'Surxondaryo', topicId: 0 },
-  { key: 'jizzax', nameUz: 'Jizzax', topicId: 0 },
-  { key: 'sirdaryo', nameUz: 'Sirdaryo', topicId: 0 },
-  { key: 'navoiy', nameUz: 'Navoiy', topicId: 0 },
-  { key: 'qoraqalpog', nameUz: "Qoraqalpog'iston", topicId: 0 },
+  { key: 'toshkent', nameUz: 'Toshkent', topicId: 3 },
+  { key: 'samarqand', nameUz: 'Samarqand', topicId: 9 },
+  { key: 'andijon', nameUz: 'Andijon', topicId: 6 },
+  { key: 'namangan', nameUz: 'Namangan', topicId: 4 },
+  { key: 'fargona', nameUz: "Farg'ona", topicId: 5 },
+  { key: 'buxoro', nameUz: 'Buxoro', topicId: 12 },
+  { key: 'xorazm', nameUz: 'Xorazm', topicId: 49 },
+  { key: 'qashqadaryo', nameUz: 'Qashqadaryo', topicId: 10 },
+  { key: 'surxondaryo', nameUz: 'Surxondaryo', topicId: 13 },
+  { key: 'jizzax', nameUz: 'Jizzax', topicId: 8 },
+  { key: 'sirdaryo', nameUz: 'Sirdaryo', topicId: 7 },
+  { key: 'navoiy', nameUz: 'Navoiy', topicId: 13 },
+  { key: 'qoraqalpog', nameUz: "Qoraqalpog'iston", topicId: 15 },
   // Chet davlatlar — faqat "qayerga" uchun, qayerdan da ko'rinmasin (scene ichida filtrlanadi)
   { key: 'foreign', nameUz: 'Chet Davlatlar (MDH + Xitoy)', topicId: 49 },
 ];
@@ -28,6 +28,7 @@ async function main() {
       create: region,
       update: {
         nameUz: region.nameUz,
+        topicId: region.topicId,
         isActive: true,
       },
     });
