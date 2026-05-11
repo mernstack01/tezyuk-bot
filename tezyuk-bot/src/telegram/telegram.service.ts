@@ -146,7 +146,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           : order.toRegion;
         return (
           `${i + 1}. ${statusIcon[order.status] ?? '⚪'} ${fromLocation} → ${toLocation}\n` +
-          `   ${order.cargoName} | ${order.weight}\n` +
+          `   ${order.cargoName} ${order.weight}\n` +
           `   💰 ${order.price || 'Kelishiladi'}`
         );
       })
@@ -258,11 +258,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         } catch {}
       }
 
-      // Foydalanuvchiga raqam yashirilgani haqida DM
+      // Foydalanuvchiga e'lon yopilgani haqida DM
       try {
         await this.bot.telegram.sendMessage(
           ctx.from.id,
-          "✅ E'loningiz yopildi. Raqamingiz haydovchilardan yashirildi.",
+          "✅ E'loningiz yopildi.",
         );
       } catch {}
 

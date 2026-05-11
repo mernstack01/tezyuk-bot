@@ -28,7 +28,36 @@ interface OrderState {
 }
 
 const cancelKeyboard = () =>
-  Markup.keyboard([['❌ Bekor qilish']]).resize();
+  Markup.keyboard([['❌ Bekor qilish', "➕ Yangi e'lon"]]).resize();
+
+const parseCargoAndWeight = (
+  value: string,
+): { cargoName: string; weight: string } | null => {
+  const text = normalizeText(value);
+  const withUnit = text.match(
+    /^(.+?)\s+(\d+(?:[.,]\d+)?\s*(?:kg|kgs|kilogram|kilogramm|kilo|tonna|tona|t|кг|тонна|тонн)\b.*)$/i,
+  );
+
+  if (withUnit) {
+    return {
+      cargoName: normalizeText(withUnit[1]),
+      weight: normalizeText(withUnit[2]),
+    };
+  }
+
+  const numberIndex = text.search(/\d/);
+  if (numberIndex <= 0) {
+    return null;
+  }
+
+  const cargoName = normalizeText(text.slice(0, numberIndex));
+  const weight = normalizeText(text.slice(numberIndex));
+  if (!cargoName || !containsNumber(weight)) {
+    return null;
+  }
+
+  return { cargoName, weight };
+};
 
 // Raqam formati: +998XXXXXXXXX yoki 998XXXXXXXXX yoki 8XXXXXXXXXX
 const isValidPhone = (value: string): boolean =>
@@ -81,7 +110,7 @@ export const createOrderScene = (
       await ctx.reply(
         "✅ E'loningiz joylashtirildi!\n\n" +
           "💡 Eslatma: Haydovchi topilganda '✅ Topildim' tugmasini bosing — " +
-          "e'lon yopiladi va raqamingiz yashiriladi.",
+          "e'lon yopiladi.",
         Markup.inlineKeyboard([
           [
             Markup.button.callback('✅ Topildim', `completeorder:${order.id}`),
@@ -303,38 +332,31 @@ export const createOrderScene = (
         state.toDistrict = text === '—' ? '' : text;
       }
 
-      await ctx.reply('Yuk nomi va tavsifi?', cancelKeyboard());
+      await ctx.reply(
+        "Yuk va tonnasini yozing.\n\nMasalan: Shakar 5 tonna",
+        cancelKeyboard(),
+      );
       return ctx.wizard.next();
     },
 
-    // Qadam 6: Yuk nomi qabul qilish → og'irlik so'rash
+    // Qadam 6: Yuk nomi va og'irlik qabul qilish → narx so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
       const message = ctx.message;
-      const cargoName =
+      const cargoText =
         message && 'text' in message ? normalizeText(message.text) : '';
-      if (cargoName.length < 3) {
-        await ctx.reply("Yuk tavsifi kamida 3 ta belgidan iborat bo'lsin");
+      const parsed = parseCargoAndWeight(cargoText);
+
+      if (!parsed || parsed.cargoName.length < 3) {
+        await ctx.reply(
+          "Yuk va tonnasini yozing.\n\nMasalan: Shakar 5 tonna",
+          cancelKeyboard(),
+        );
         return;
       }
 
-      state.cargoName = cargoName;
-      await ctx.reply("Og'irligi? (masalan: 5 tonna)", cancelKeyboard());
-      return ctx.wizard.next();
-    },
-
-    // Qadam 7: Og'irlik qabul qilish → narx so'rash
-    async (ctx) => {
-      const state = ctx.wizard.state as OrderState;
-      const message = ctx.message;
-      const weight =
-        message && 'text' in message ? normalizeText(message.text) : '';
-      if (!containsNumber(weight)) {
-        await ctx.reply("Og'irlikda raqam bo'lishi kerak");
-        return;
-      }
-
-      state.weight = weight;
+      state.cargoName = parsed.cargoName;
+      state.weight = parsed.weight;
       await ctx.reply(
         "Narx? (masalan: 500 000 so'm yoki \"Kelishamiz\")",
         cancelKeyboard(),
@@ -342,7 +364,7 @@ export const createOrderScene = (
       return ctx.wizard.next();
     },
 
-    // Qadam 8: Narx qabul qilish → qo'shimcha ma'lumot so'rash
+    // Qadam 8: Narx qabul qilish → yuklash vaqtini so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
       const message = ctx.message;
@@ -355,13 +377,13 @@ export const createOrderScene = (
 
       state.price = price;
       await ctx.reply(
-        "📝 Qo'shimcha ma'lumot? (yuklash vaqti, maxsus talablar, eslatmalar)\n\nYoki o'tkazib yuborish uchun — yozing",
+        'Yuklash vaqti?\n\nMasalan: Bugun 18:00\n\nBilmasangiz — yozing',
         cancelKeyboard(),
       );
       return ctx.wizard.next();
     },
 
-    // Qadam 9: Qo'shimcha ma'lumot qabul qilish → mashina turi so'rash
+    // Qadam 9: Yuklash vaqti qabul qilish → mashina turi so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
       const message = ctx.message;
@@ -369,7 +391,7 @@ export const createOrderScene = (
         message && 'text' in message ? normalizeText(message.text) : '';
 
       if (text.length < 1) {
-        await ctx.reply("Matn kiriting yoki o'tkazib yuborish uchun — yozing");
+        await ctx.reply('Yuklash vaqtini yozing yoki bilmasangiz — yozing');
         return;
       }
 
@@ -412,13 +434,12 @@ export const createOrderScene = (
         [
           "📋 Buyurtma ma'lumotlari:",
           '',
-          `📦 Yuk: ${state.cargoName ?? ''}`,
+          `📦 Yuk: ${state.cargoName ?? ''} ${state.weight ?? ''}`,
           `📍 Qayerdan: ${fromLocation}`,
           `📍 Qayerga: ${toLocation}`,
-          `⚖️ Og'irlik: ${state.weight ?? ''}`,
           `🚚 Mashina: ${state.truckType ?? ''}`,
           `💰 Narx: ${state.price ?? ''}`,
-          ...(state.extraInfo ? [`📝 Qo'shimcha: ${state.extraInfo}`] : []),
+          ...(state.extraInfo ? [`⏰ Yuklash: ${state.extraInfo}`] : []),
         ].join('\n'),
         Markup.inlineKeyboard([
           [
@@ -540,6 +561,12 @@ export const createOrderScene = (
   scene.hears('❌ Bekor qilish', async (ctx) => {
     await ctx.reply("❌ E'lon berish bekor qilindi", mainKeyboard());
     await ctx.scene.leave();
+  });
+
+  scene.hears("➕ Yangi e'lon", async (ctx) => {
+    await ctx.reply("Joriy e'lon bekor qilindi. Yangisini boshlaymiz.");
+    await ctx.scene.leave();
+    await ctx.scene.enter('order');
   });
 
   scene.command('cancel', async (ctx) => {

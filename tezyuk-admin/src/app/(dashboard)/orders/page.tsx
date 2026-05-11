@@ -159,8 +159,8 @@ export default function OrdersPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-700">
-                      <div>{order.cargoName}</div>
-                      <div className="text-xs text-gray-500">{order.weight} | {order.truckType}</div>
+                      <div>{order.cargoName} {order.weight}</div>
+                      <div className="text-xs text-gray-500">{order.truckType}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-700">{order.price || '—'}</td>
                     <td className="px-4 py-3">

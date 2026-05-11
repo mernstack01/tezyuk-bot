@@ -132,8 +132,7 @@ export default function OrderDetailPage() {
             label="Tushirish hududi"
             value={order.toDistrict ? `${order.toRegion}, ${order.toDistrict}` : order.toRegion}
           />
-          <DetailRow label="Yuk nomi" value={order.cargoName} />
-          <DetailRow label="Og'irlik" value={order.weight} />
+          <DetailRow label="Yuk" value={`${order.cargoName} ${order.weight}`} />
           <DetailRow label="Mashina turi" value={order.truckType} />
           <DetailRow label="Narx" value={order.price || '—'} />
           <DetailRow

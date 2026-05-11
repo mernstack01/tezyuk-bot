@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { serializeBigInts } from 'src/common/utils/serialize.util';
 import { OrdersService } from 'src/orders/orders.service';
 import { RegionsService } from 'src/regions/regions.service';
 import { SettingsService } from 'src/settings/settings.service';
@@ -26,17 +27,17 @@ export class AdminService {
     private readonly logger: LoggerService,
   ) {}
 
-  getOrders(params: {
+  async getOrders(params: {
     status?: OrderStatus;
     region?: string;
     page: number;
     limit: number;
   }) {
-    return this.ordersService.listForAdmin(params);
+    return serializeBigInts(await this.ordersService.listForAdmin(params));
   }
 
-  getOrderById(id: string) {
-    return this.ordersService.findById(id);
+  async getOrderById(id: string) {
+    return serializeBigInts(await this.ordersService.findById(id));
   }
 
   updateOrder(id: string, dto: UpdateOrderDto) {
@@ -76,12 +77,12 @@ export class AdminService {
     return order;
   }
 
-  getUsers(page: number, limit: number) {
-    return this.usersService.list(page, limit);
+  async getUsers(page: number, limit: number) {
+    return serializeBigInts(await this.usersService.list(page, limit));
   }
 
-  toggleUserBlock(id: string) {
-    return this.usersService.toggleBlock(id);
+  async toggleUserBlock(id: string) {
+    return serializeBigInts(await this.usersService.toggleBlock(id));
   }
 
   getRegions() {
@@ -108,7 +109,7 @@ export class AdminService {
     return this.settingsService.updateDailyLimit(dto.dailyOrderLimit);
   }
 
-  setUserDailyLimit(id: string, limit: number | null) {
-    return this.usersService.setDailyLimit(id, limit);
+  async setUserDailyLimit(id: string, limit: number | null) {
+    return serializeBigInts(await this.usersService.setDailyLimit(id, limit));
   }
 }

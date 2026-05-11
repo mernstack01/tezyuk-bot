@@ -39,7 +39,7 @@ export const formatAnnouncement = (
   const phoneSource = order.contactPhone ?? order.user.phone;
   const rawPhone = phoneSource.startsWith('+') ? phoneSource : `+${phoneSource}`;
   const phoneDisplay = options.hidePhone
-    ? '🔒 Yashirilgan'
+    ? '✅ Yopildi'
     : `[${rawPhone}](tel:${rawPhone})`;
 
   // Yopilgan e'lonlarda YOPILDI badge qo'shiladi
@@ -50,13 +50,12 @@ export const formatAnnouncement = (
   return [
     header,
     '',
-    `📦 *Yuk:* ${escapeMarkdown(order.cargoName)}`,
+    `📦 *Yuk:* ${escapeMarkdown(`${order.cargoName} ${order.weight}`)}`,
     `📍 *Qayerdan:* ${fromLocation}`,
     `📍 *Qayerga:* ${toLocation}`,
-    `⚖️ *Og'irlik:* ${escapeMarkdown(order.weight)}`,
     `🚚 *Mashina:* ${escapeMarkdown(order.truckType)}`,
     `💰 *Narx:* ${escapeMarkdown(order.price || 'Kelishiladi')}`,
-    ...(order.extraInfo ? [`📝 *Qo'shimcha:* ${escapeMarkdown(order.extraInfo)}`] : []),
+    ...(order.extraInfo ? [`⏰ *Yuklash:* ${escapeMarkdown(order.extraInfo)}`] : []),
     `📞 *Mijoz:* ${phoneDisplay}`,
     '',
     `⏰ ${escapeMarkdown(formatTime(order.createdAt))} da yuborildi`,
