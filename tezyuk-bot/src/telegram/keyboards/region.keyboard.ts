@@ -8,6 +8,7 @@ export const regionKeyboard = (regions: Region[], prefix: string) => {
 
   return Markup.inlineKeyboard([
     ...chunk(buttons, 2),
+    [Markup.button.callback("➕ Yangi e'lon", 'new:scene')],
     [Markup.button.callback('❌ Bekor qilish', 'cancel:scene')],
   ]);
 };

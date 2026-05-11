@@ -26,6 +26,7 @@ export const truckKeyboard = () =>
       2,
     ),
     [Markup.button.callback('❌ Transport turi muhim emas', 'truck:muhim_emas')],
+    [Markup.button.callback("➕ Yangi e'lon", 'new:scene')],
     [Markup.button.callback('🚫 Bekor qilish', 'cancel:scene')],
   ]);
 
