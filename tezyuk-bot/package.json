@@ -17,8 +17,10 @@
     "test:cov": "jest --coverage",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node --project tsconfig.json prisma/seed.ts"
+    "prisma:seed": "ts-node --project tsconfig.json prisma/seed.ts",
+    "db:setup": "npm run prisma:deploy && npm run prisma:seed"
   },
   "dependencies": {
     "@nestjs/bullmq": "^10.2.3",

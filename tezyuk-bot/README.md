@@ -41,6 +41,14 @@ npx prisma migrate dev --name init
 npm run prisma:seed
 ```
 
+Yangi yoki o'chib ketgan database uchun migration va seedni birga ishga tushirish:
+
+```bash
+npm run db:setup
+```
+
+Seed region `topicId` larini qayta yozadi va terminalga ro'yxat qilib chiqaradi.
+
 6. Dastur:
 
 ```bash

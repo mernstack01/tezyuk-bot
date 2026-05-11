@@ -22,6 +22,12 @@ const regions = [
 ];
 
 async function main() {
+  await prisma.appSettings.upsert({
+    where: { id: 1 },
+    create: { id: 1, dailyOrderLimit: 12 },
+    update: {},
+  });
+
   for (const region of regions) {
     await prisma.region.upsert({
       where: { key: region.key },
@@ -33,6 +39,15 @@ async function main() {
       },
     });
   }
+
+  console.log('\nTelegram topicId seed:');
+  console.table(
+    regions.map((region) => ({
+      key: region.key,
+      nameUz: region.nameUz,
+      topicId: region.topicId,
+    })),
+  );
 
   const username = process.env.ADMIN_USERNAME ?? 'admin';
   const password = process.env.ADMIN_PASSWORD ?? 'admin123';
