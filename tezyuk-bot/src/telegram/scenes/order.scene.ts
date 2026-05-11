@@ -156,6 +156,28 @@ export const createOrderScene = (
     return false;
   };
 
+  const handleCallbackControl = async (
+    ctx: Scenes.WizardContext,
+  ): Promise<boolean> => {
+    const callbackQuery = ctx.callbackQuery;
+    const data =
+      callbackQuery && 'data' in callbackQuery ? callbackQuery.data : undefined;
+
+    if (data === 'cancel:scene') {
+      await ctx.answerCbQuery();
+      await cancelOrder(ctx);
+      return true;
+    }
+
+    if (data === 'new:scene') {
+      await ctx.answerCbQuery();
+      await restartOrder(ctx);
+      return true;
+    }
+
+    return false;
+  };
+
   const scene = new Scenes.WizardScene<Scenes.WizardContext>(
     'order',
 
@@ -177,6 +199,7 @@ export const createOrderScene = (
     // Qadam 1: Yo'nalish qabul qilish → FROM boshlash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       const callbackQuery = ctx.callbackQuery;
@@ -213,6 +236,7 @@ export const createOrderScene = (
     // Qadam 2: isFromForeign → davlat nomi (text) | UZ → from-viloyat (callback)
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       if (state.isFromForeign) {
@@ -259,6 +283,7 @@ export const createOrderScene = (
     // Qadam 3: From-shahar/tuman qabul qilish → TO boshlash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       const message = ctx.message;
@@ -300,6 +325,7 @@ export const createOrderScene = (
     // Qadam 4: isForeign → TO davlat nomi (text) | UZ → to-viloyat (callback)
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       if (state.isForeign) {
@@ -351,6 +377,7 @@ export const createOrderScene = (
     // Qadam 5: To-shahar/tuman qabul qilish → yuk nomi so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       const message = ctx.message;
@@ -381,6 +408,7 @@ export const createOrderScene = (
     // Qadam 6: Yuk nomi va og'irlik qabul qilish → narx so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       const message = ctx.message;
@@ -408,6 +436,7 @@ export const createOrderScene = (
     // Qadam 8: Narx qabul qilish → yuklash vaqtini so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       const message = ctx.message;
@@ -429,6 +458,7 @@ export const createOrderScene = (
     // Qadam 9: Yuklash vaqti qabul qilish → mashina turi so'rash
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       const message = ctx.message;
@@ -451,6 +481,7 @@ export const createOrderScene = (
     // Qadam 10: Mashina turi qabul qilish → preview ko'rsatish
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       const callbackQuery = ctx.callbackQuery;
@@ -501,6 +532,7 @@ export const createOrderScene = (
 
     // Qadam 11: Tasdiqlash qabul qilish → telefon tanlash
     async (ctx) => {
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       const callbackQuery = ctx.callbackQuery;
@@ -554,6 +586,7 @@ export const createOrderScene = (
     // Qadam 11: Telefon tanlash qabul qilish
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       const callbackQuery = ctx.callbackQuery;
@@ -598,6 +631,7 @@ export const createOrderScene = (
     // Qadam 12: Maxsus telefon raqam qabul qilish → buyurtma yaratish
     async (ctx) => {
       const state = ctx.wizard.state as OrderState;
+      if (await handleCallbackControl(ctx)) return;
       if (await handleTextControl(ctx)) return;
 
       const message = ctx.message;
@@ -616,26 +650,8 @@ export const createOrderScene = (
     },
   );
 
-  scene.hears('❌ Bekor qilish', async (ctx) => {
-    await cancelOrder(ctx);
-  });
-
-  scene.hears("➕ Yangi e'lon", async (ctx) => {
-    await restartOrder(ctx);
-  });
-
   scene.command('cancel', async (ctx) => {
     await cancelOrder(ctx);
-  });
-
-  scene.action('cancel:scene', async (ctx) => {
-    await ctx.answerCbQuery();
-    await cancelOrder(ctx);
-  });
-
-  scene.action('new:scene', async (ctx) => {
-    await ctx.answerCbQuery();
-    await restartOrder(ctx);
   });
 
   return scene;
