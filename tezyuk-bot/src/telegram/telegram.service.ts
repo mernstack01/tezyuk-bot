@@ -17,12 +17,13 @@ import { OrdersService } from 'src/orders/orders.service';
 import { RegionsService } from 'src/regions/regions.service';
 import { UsersService } from 'src/users/users.service';
 import { formatAnnouncement } from 'src/common/utils/formatter.util';
+import { ADMIN_PHONE } from 'src/config/constants';
 import { mainKeyboard } from './keyboards/main.keyboard';
 import { RegisteredGuard } from './guards/registered.guard';
 
 type BotContext = Scenes.WizardContext;
 
-const CONTACT_TEXT = `📞 Bog'lanish uchun:\n\nSavollar va takliflar uchun admin bilan bog'laning.`;
+const CONTACT_TEXT = `📞 Bog'lanish uchun:\n\nSavollar va takliflar uchun admin bilan bog'laning:\n${ADMIN_PHONE}`;
 
 const HELP_TEXT =
   `❓ *Yordam*\n\n` +
